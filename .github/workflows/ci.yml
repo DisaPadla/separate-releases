@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-build-test:
+    name: Lint, Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm i
+
+      - name: Lint all projects
+        run: npx nx run-many -t lint --parallel=3
+
+      - name: Type-check all projects
+        run: npx nx run-many -t typecheck --parallel=3
+
+      - name: Build all projects
+        run: npx nx run-many -t build --parallel=3
+
+      - name: Test all projects
+        run: npx nx run-many -t test --parallel=3 --configuration=ci
