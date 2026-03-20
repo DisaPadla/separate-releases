@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script>
+      // SPA redirect for GitHub Pages
+      // Stores the current path and redirects to site root
+      // The main index.html restores the route via history.replaceState
+      var repo = '/' + window.location.pathname.split('/')[1] + '/';
+      var path = window.location.pathname.slice(repo.length);
+      sessionStorage.setItem('spa-redirect', '/' + path);
+      window.location.replace(repo);
+    </script>
+  </head>
+  <body></body>
+</html>
