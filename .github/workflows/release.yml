@@ -113,19 +113,24 @@ jobs:
             --configuration=production \
             --parallel=3
 
-      # ── Prepare gh-pages branch via worktree ─────────────────────────
-      - name: Prepare gh-pages branch
-        if: steps.affected.outputs.skip == 'false'
+      # ── Prepare gh-pages branch ──────────────────────────────────────
+      - name: Checkout gh-pages into _site
+        id: checkout_pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: _site
+          fetch-depth: 1
+        continue-on-error: true
+
+      - name: Initialize gh-pages if not exists
+        if: steps.checkout_pages.outcome == 'failure'
         run: |
-          PR_BRANCH="${{ github.event.pull_request.head.ref }}"
-          git fetch origin gh-pages:gh-pages 2>/dev/null || {
-            echo "Creating orphan gh-pages branch"
-            git checkout --orphan gh-pages
-            git rm -rf . 2>/dev/null || true
-            git commit --allow-empty -m "Initial gh-pages"
-            git checkout "$PR_BRANCH"
-          }
-          git worktree add _site gh-pages
+          mkdir -p _site
+          cd _site
+          git init -b gh-pages
+          git commit --allow-empty -m "Initial gh-pages"
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
 
       # ── Copy versioned builds ────────────────────────────────────────
       - name: Copy versioned builds
@@ -245,12 +250,12 @@ jobs:
         if: steps.affected.outputs.skip == 'false'
         run: |
           cd _site
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
           if git diff --staged --quiet; then
             echo "No changes to deploy"
           else
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
             git commit -m "deploy: shell@${{ steps.versions.outputs.shell_version }} remote1@${{ steps.versions.outputs.remote1_version }} remote2@${{ steps.versions.outputs.remote2_version }}"
             git push origin gh-pages
           fi
