@@ -108,10 +108,23 @@ jobs:
       - name: Build affected apps
         if: steps.affected.outputs.skip == 'false'
         run: |
-          npx nx run-many -t build \
-            --projects=${{ steps.versions.outputs.affected_csv }} \
-            --configuration=production \
-            --parallel=3
+          REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
+
+          # Build shell with correct baseHref for GitHub Pages
+          AFFECTED="${{ steps.versions.outputs.affected_csv }}"
+          if echo "$AFFECTED" | grep -qw "shell"; then
+            npx nx build shell --configuration=production --baseHref="/${REPO_NAME}/"
+            # Build remaining affected apps (excluding shell) in parallel
+            OTHERS=$(echo "$AFFECTED" | tr ',' '\n' | grep -v '^shell$' | tr '\n' ',' | sed 's/,$//')
+            if [ -n "$OTHERS" ]; then
+              npx nx run-many -t build --projects="$OTHERS" --configuration=production --parallel=3
+            fi
+          else
+            npx nx run-many -t build \
+              --projects=${{ steps.versions.outputs.affected_csv }} \
+              --configuration=production \
+              --parallel=3
+          fi
 
       # ── Prepare gh-pages branch ──────────────────────────────────────
       - name: Checkout gh-pages into _site
