@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Link, Route, Routes, useLocation } from 'react-router-dom';
+import { VersionSelector } from './VersionSelector';
 import styles from './app.module.css';
 
 const Remote1 = React.lazy(() => import('remote1/Module'));
@@ -69,6 +70,7 @@ export function App() {
     <div className={styles.appContainer}>
       <NavBar />
       <main className={styles.main}>
+        <VersionSelector />
         <React.Suspense
           fallback={
             <div className={styles.loading}>

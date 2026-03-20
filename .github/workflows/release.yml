@@ -1,0 +1,183 @@
+name: Release
+
+on:
+  pull_request:
+    types: [labeled]
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build & Deploy
+    if: github.event.label.name == 'release'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Determine affected apps
+        id: affected
+        run: |
+          AFFECTED=$(npx nx show projects --affected --base=origin/main~1 --head=${{ github.event.pull_request.head.sha }} --type=app 2>/dev/null || echo "")
+          echo "apps=${AFFECTED}" >> "$GITHUB_OUTPUT"
+          echo "Affected apps: ${AFFECTED}"
+
+      - name: Bump versions for affected apps
+        id: versions
+        run: |
+          APPS="${{ steps.affected.outputs.apps }}"
+          SHELL_VERSION=""
+          REMOTE1_VERSION=""
+          REMOTE2_VERSION=""
+
+          for app in shell remote1 remote2; do
+            PKG="apps/${app}/package.json"
+            CURRENT=$(node -p "require('./${PKG}').version")
+
+            if echo "$APPS" | grep -qw "$app"; then
+              # Bump patch version
+              IFS='.' read -r major minor patch <<< "$CURRENT"
+              NEW_VERSION="${major}.${minor}.$((patch + 1))"
+              node -e "
+                const fs = require('fs');
+                const pkg = JSON.parse(fs.readFileSync('${PKG}', 'utf8'));
+                pkg.version = '${NEW_VERSION}';
+                fs.writeFileSync('${PKG}', JSON.stringify(pkg, null, 2) + '\n');
+              "
+              echo "${app} bumped: ${CURRENT} -> ${NEW_VERSION}"
+              eval "${app^^}_VERSION=${NEW_VERSION}" 2>/dev/null || true
+            else
+              echo "${app} not affected, keeping ${CURRENT}"
+              eval "${app^^}_VERSION=${CURRENT}" 2>/dev/null || true
+            fi
+          done
+
+          # Read final versions
+          SHELL_VERSION=$(node -p "require('./apps/shell/package.json').version")
+          REMOTE1_VERSION=$(node -p "require('./apps/remote1/package.json').version")
+          REMOTE2_VERSION=$(node -p "require('./apps/remote2/package.json').version")
+
+          echo "shell_version=${SHELL_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "remote1_version=${REMOTE1_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "remote2_version=${REMOTE2_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Build all apps
+        run: npx nx run-many -t build --projects=shell,remote1,remote2 --configuration=production --parallel=3
+
+      - name: Prepare GitHub Pages structure
+        run: |
+          mkdir -p _site/remote1/${{ steps.versions.outputs.remote1_version }}
+          mkdir -p _site/remote2/${{ steps.versions.outputs.remote2_version }}
+          mkdir -p _site/shell/${{ steps.versions.outputs.shell_version }}
+
+          cp -r apps/remote1/dist/* _site/remote1/${{ steps.versions.outputs.remote1_version }}/
+          cp -r apps/remote2/dist/* _site/remote2/${{ steps.versions.outputs.remote2_version }}/
+          cp -r apps/shell/dist/* _site/shell/${{ steps.versions.outputs.shell_version }}/
+
+      - name: Download existing deployment
+        id: existing
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: github-pages
+          path: _existing
+
+      - name: Merge with existing versions
+        run: |
+          # If there's an existing deployment, merge
+          if [ -d "_existing" ]; then
+            # Extract if it's a tar
+            if [ -f "_existing/artifact.tar" ]; then
+              mkdir -p _prev
+              tar -xf _existing/artifact.tar -C _prev 2>/dev/null || true
+              # Copy previous versions that don't conflict with new ones
+              for app in remote1 remote2 shell; do
+                if [ -d "_prev/${app}" ]; then
+                  for ver_dir in _prev/${app}/*/; do
+                    ver=$(basename "$ver_dir")
+                    if [ ! -d "_site/${app}/${ver}" ] && [ "$ver" != "*" ]; then
+                      cp -r "$ver_dir" "_site/${app}/${ver}"
+                    fi
+                  done
+                fi
+              done
+              # Preserve versions.json history
+              if [ -f "_prev/versions.json" ]; then
+                cp _prev/versions.json _site/versions.prev.json
+              fi
+            fi
+          fi
+
+      - name: Generate versions.json manifest
+        run: |
+          # Build the all-versions arrays from _site directories
+          REMOTE1_ALL=$(ls -d _site/remote1/*/ 2>/dev/null | xargs -I{} basename {} | sort -V | jq -R . | jq -s .)
+          REMOTE2_ALL=$(ls -d _site/remote2/*/ 2>/dev/null | xargs -I{} basename {} | sort -V | jq -R . | jq -s .)
+          SHELL_ALL=$(ls -d _site/shell/*/ 2>/dev/null | xargs -I{} basename {} | sort -V | jq -R . | jq -s .)
+
+          cat > _site/versions.json << EOF
+          {
+            "latest": {
+              "shell": "${{ steps.versions.outputs.shell_version }}",
+              "remote1": "${{ steps.versions.outputs.remote1_version }}",
+              "remote2": "${{ steps.versions.outputs.remote2_version }}"
+            },
+            "available": {
+              "shell": ${SHELL_ALL},
+              "remote1": ${REMOTE1_ALL},
+              "remote2": ${REMOTE2_ALL}
+            }
+          }
+          EOF
+
+          echo "Generated versions.json:"
+          cat _site/versions.json
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Commit version bumps
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add apps/*/package.json
+          if git diff --staged --quiet; then
+            echo "No version changes to commit"
+          else
+            git commit -m "chore: bump versions [skip ci]
+
+            shell: ${{ steps.versions.outputs.shell_version }}
+            remote1: ${{ steps.versions.outputs.remote1_version }}
+            remote2: ${{ steps.versions.outputs.remote2_version }}"
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          fi
