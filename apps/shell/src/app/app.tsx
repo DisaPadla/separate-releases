@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Link, Route, Routes, useLocation } from 'react-router-dom';
 import { VersionSelector } from './VersionSelector';
+import * as _ from 'lodash-es';
 import styles from './app.module.css';
 
 const Remote1 = React.lazy(() => import('remote1/Module'));
@@ -14,6 +15,9 @@ function HomePage() {
         <p className={styles.heroSubtitle}>
           A React monorepo with NX and Webpack Module Federation.
           Navigate to the remote applications below.
+        </p>
+        <p className={styles.heroSubtitle}>
+          Shell uses <strong>lodash-es@{(_ as any).VERSION}</strong> — {_.capitalize('hello from shell')}
         </p>
       </div>
       <div className={styles.cards}>

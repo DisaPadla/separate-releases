@@ -109,5 +109,8 @@
   "devDependencies": {
     "remote1": "*",
     "remote2": "*"
+  },
+  "dependencies": {
+    "lodash-es": "^4.17.21"
   }
 }

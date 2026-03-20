@@ -114,5 +114,8 @@
       "default": "./src/remote-entry.ts"
     }
   },
-  "types": "./src/remote-entry.ts"
+  "types": "./src/remote-entry.ts",
+  "dependencies": {
+    "lodash-es": "^4.17.20"
+  }
 }
