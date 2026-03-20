@@ -1,0 +1,148 @@
+{
+  "id": "shell",
+  "name": "shell",
+  "metaData": {
+    "name": "shell",
+    "type": "app",
+    "buildInfo": {
+      "buildVersion": "0.0.1",
+      "buildName": "shell"
+    },
+    "remoteEntry": {
+      "name": "",
+      "path": "",
+      "type": "global"
+    },
+    "types": {
+      "path": "",
+      "name": "",
+      "zip": "",
+      "api": ""
+    },
+    "globalName": "shell",
+    "pluginVersion": "0.21.6",
+    "prefetchInterface": false,
+    "publicPath": "auto"
+  },
+  "shared": [
+    {
+      "id": "shell:react-dom/client",
+      "name": "react-dom/client",
+      "version": "19.2.4",
+      "singleton": true,
+      "requiredVersion": "^19.0.0",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "873.58fae92608325ab3.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": []
+        }
+      }
+    },
+    {
+      "id": "shell:react-dom",
+      "name": "react-dom",
+      "version": "19.2.4",
+      "singleton": true,
+      "requiredVersion": "^19.0.0",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "main.5c50910b92b835f7.js",
+            "styles.ca0e011658dd4738.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": [
+            "styles.ef46db3751d8e999.css"
+          ]
+        }
+      }
+    },
+    {
+      "id": "shell:react-router-dom",
+      "name": "react-router-dom",
+      "version": "6.30.3",
+      "singleton": true,
+      "requiredVersion": "6.30.3",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "main.5c50910b92b835f7.js",
+            "styles.ca0e011658dd4738.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": [
+            "styles.ef46db3751d8e999.css"
+          ]
+        }
+      }
+    },
+    {
+      "id": "shell:react/jsx-runtime",
+      "name": "react/jsx-runtime",
+      "version": "19.2.4",
+      "singleton": true,
+      "requiredVersion": "^19.0.0",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "85.61e8fc86feb0b8e4.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": []
+        }
+      }
+    },
+    {
+      "id": "shell:react",
+      "name": "react",
+      "version": "19.2.4",
+      "singleton": true,
+      "requiredVersion": "^19.0.0",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "main.5c50910b92b835f7.js",
+            "styles.ca0e011658dd4738.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": [
+            "styles.ef46db3751d8e999.css"
+          ]
+        }
+      }
+    }
+  ],
+  "remotes": [
+    {
+      "federationContainerName": "remote1",
+      "moduleName": "Module",
+      "alias": "remote1",
+      "entry": "http://localhost:4201/remoteEntry.js"
+    },
+    {
+      "federationContainerName": "remote2",
+      "moduleName": "Module",
+      "alias": "remote2",
+      "entry": "http://localhost:4202/remoteEntry.js"
+    }
+  ],
+  "exposes": []
+}

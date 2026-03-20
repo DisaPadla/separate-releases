@@ -1,0 +1,180 @@
+{
+  "id": "remote1",
+  "name": "remote1",
+  "metaData": {
+    "name": "remote1",
+    "type": "app",
+    "buildInfo": {
+      "buildVersion": "0.0.1",
+      "buildName": "remote1"
+    },
+    "remoteEntry": {
+      "name": "remoteEntry.js",
+      "path": "",
+      "type": "global"
+    },
+    "types": {
+      "path": "",
+      "name": "",
+      "zip": "",
+      "api": ""
+    },
+    "globalName": "remote1",
+    "pluginVersion": "0.21.6",
+    "prefetchInterface": false,
+    "publicPath": "auto"
+  },
+  "shared": [
+    {
+      "singleton": true,
+      "requiredVersion": "^19.0.0",
+      "shareScope": "default",
+      "strictVersion": true,
+      "name": "react-dom/client",
+      "version": "19.2.4",
+      "eager": false,
+      "id": "remote1:react-dom/client",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "873.3a62eceb9722d241.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": []
+        }
+      },
+      "usedIn": []
+    },
+    {
+      "singleton": true,
+      "requiredVersion": "^19.0.0",
+      "shareScope": "default",
+      "strictVersion": true,
+      "eager": true,
+      "name": "react-dom",
+      "version": "19.2.4",
+      "id": "remote1:react-dom",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "remoteEntry.js",
+            "main.899fe655a2644ecb.js",
+            "styles.bab8936ead9c9dff.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": [
+            "styles.ef46db3751d8e999.css"
+          ]
+        }
+      },
+      "usedIn": []
+    },
+    {
+      "singleton": true,
+      "requiredVersion": "6.30.3",
+      "shareScope": "default",
+      "strictVersion": true,
+      "eager": true,
+      "name": "react-router-dom",
+      "version": "6.30.3",
+      "id": "remote1:react-router-dom",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "remoteEntry.js",
+            "main.899fe655a2644ecb.js",
+            "styles.bab8936ead9c9dff.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": [
+            "styles.ef46db3751d8e999.css"
+          ]
+        }
+      },
+      "usedIn": []
+    },
+    {
+      "singleton": true,
+      "requiredVersion": "^19.0.0",
+      "shareScope": "default",
+      "strictVersion": true,
+      "name": "react/jsx-runtime",
+      "version": "19.2.4",
+      "eager": false,
+      "id": "remote1:react/jsx-runtime",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "85.1e37513ca9a980cf.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": []
+        }
+      },
+      "usedIn": []
+    },
+    {
+      "singleton": true,
+      "requiredVersion": "^19.0.0",
+      "shareScope": "default",
+      "strictVersion": true,
+      "eager": true,
+      "name": "react",
+      "version": "19.2.4",
+      "id": "remote1:react",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "remoteEntry.js",
+            "main.899fe655a2644ecb.js",
+            "styles.bab8936ead9c9dff.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": [
+            "styles.ef46db3751d8e999.css"
+          ]
+        }
+      },
+      "usedIn": []
+    }
+  ],
+  "remotes": [],
+  "exposes": [
+    {
+      "path": "./Module",
+      "id": "remote1:Module",
+      "name": "Module",
+      "requires": [],
+      "file": "src/remote-entry.ts",
+      "assets": {
+        "js": {
+          "sync": [
+            "__federation_expose_Module.571eb130db4afd65.js"
+          ],
+          "async": []
+        },
+        "css": {
+          "sync": [
+            "__federation_expose_Module.b732ef7282e63822.css"
+          ],
+          "async": []
+        }
+      }
+    }
+  ]
+}
