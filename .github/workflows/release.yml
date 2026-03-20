@@ -4,9 +4,12 @@ on:
   pull_request:
     types: [labeled]
     branches: [main]
+  push:
+    branches: [main]
 
 permissions:
   contents: write
+  pull-requests: write
   pages: write
   id-token: write
 
@@ -15,19 +18,58 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  auto-merge:
+    name: Auto-merge PR
+    if: github.event_name == 'pull_request' && github.event.label.name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              merge_method: 'squash',
+            });
+            console.log(`PR #${context.payload.pull_request.number} merged`);
+
+  check-label:
+    name: Check release label
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+    steps:
+      - name: Check if merged PR has release label
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+            });
+            const merged = prs.find(pr => pr.merged_at !== null);
+            const hasLabel = merged?.labels.some(l => l.name === 'release') || false;
+            console.log(`Merged PR: ${merged?.number || 'none'}, has release label: ${hasLabel}`);
+            core.setOutput('should_release', hasLabel ? 'true' : 'false');
+
   release:
     name: Build & Deploy
-    if: github.event.label.name == 'release'
+    needs: check-label
+    if: needs.check-label.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - name: Checkout PR head
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
       - name: Setup Node.js
@@ -42,7 +84,7 @@ jobs:
       - name: Determine affected apps
         id: affected
         run: |
-          AFFECTED=$(npx nx show projects --affected --base=origin/main~1 --head=${{ github.event.pull_request.head.sha }} --type=app 2>/dev/null || echo "")
+          AFFECTED=$(npx nx show projects --affected --base=HEAD~1 --head=HEAD --type=app 2>/dev/null || echo "")
           echo "apps=${AFFECTED}" >> "$GITHUB_OUTPUT"
           echo "Affected apps: ${AFFECTED}"
 
@@ -179,5 +221,5 @@ jobs:
             shell: ${{ steps.versions.outputs.shell_version }}
             remote1: ${{ steps.versions.outputs.remote1_version }}
             remote2: ${{ steps.versions.outputs.remote2_version }}"
-            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+            git push origin HEAD:main
           fi
