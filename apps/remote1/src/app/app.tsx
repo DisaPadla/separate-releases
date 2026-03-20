@@ -31,7 +31,7 @@ function Remote1Nav() {
 export function App() {
   return (
     <div className={styles.container}>
-      Remote 1
+      Remote 1 HAHAHAHAH
       <Remote1Nav />
       <div className={styles.content}>
         <Routes>
