@@ -15,10 +15,22 @@ function getSavedVersions(): Record<string, string> {
   }
 }
 
+function getSiteRoot(): string {
+  // In production on GitHub Pages, the shell is at /<repo>/shell/<version>/
+  // We need the site root: /<repo>/
+  const path = window.location.pathname;
+  const shellIndex = path.indexOf('/shell/');
+  if (shellIndex !== -1) {
+    return window.location.origin + path.substring(0, shellIndex + 1);
+  }
+  // Fallback: use origin (works for local dev)
+  return window.location.origin + '/';
+}
+
 async function loadManifest(): Promise<VersionsManifest | null> {
   try {
-    const base = (document.querySelector('base')?.href || window.location.origin).replace(/\/$/, '');
-    const res = await fetch(`${base}/versions.json`);
+    const root = getSiteRoot();
+    const res = await fetch(`${root}versions.json`);
     if (!res.ok) return null;
     return res.json();
   } catch {
@@ -27,8 +39,8 @@ async function loadManifest(): Promise<VersionsManifest | null> {
 }
 
 function resolveRemoteUrl(app: string, version: string): string {
-  const base = (document.querySelector('base')?.href || window.location.origin).replace(/\/$/, '');
-  return `${base}/${app}/${version}/remoteEntry.js`;
+  const root = getSiteRoot();
+  return `${root}${app}/${version}/remoteEntry.js`;
 }
 
 async function bootstrap() {
