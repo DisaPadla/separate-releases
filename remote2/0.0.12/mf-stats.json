@@ -1,15 +1,15 @@
 {
-  "id": "shell",
-  "name": "shell",
+  "id": "remote2",
+  "name": "remote2",
   "metaData": {
-    "name": "shell",
+    "name": "remote2",
     "type": "app",
     "buildInfo": {
-      "buildVersion": "0.0.13",
-      "buildName": "shell"
+      "buildVersion": "0.0.12",
+      "buildName": "remote2"
     },
     "remoteEntry": {
-      "name": "",
+      "name": "remoteEntry.js",
       "path": "",
       "type": "global"
     },
@@ -19,7 +19,7 @@
       "zip": "",
       "api": ""
     },
-    "globalName": "shell",
+    "globalName": "remote2",
     "pluginVersion": "0.21.6",
     "prefetchInterface": false,
     "publicPath": "auto"
@@ -33,12 +33,12 @@
       "name": "react-dom/client",
       "version": "19.2.4",
       "eager": false,
-      "id": "shell:react-dom/client",
+      "id": "remote2:react-dom/client",
       "assets": {
         "js": {
           "async": [],
           "sync": [
-            "873.58fae92608325ab3.js"
+            "873.4cc1bca4e9796ffc.js"
           ]
         },
         "css": {
@@ -56,13 +56,14 @@
       "eager": true,
       "name": "react-dom",
       "version": "19.2.4",
-      "id": "shell:react-dom",
+      "id": "remote2:react-dom",
       "assets": {
         "js": {
           "async": [],
           "sync": [
-            "main.5d28674e27f17971.js",
-            "styles.ca0e011658dd4738.js"
+            "remoteEntry.js",
+            "main.7e47a90fb8dd324d.js",
+            "styles.b97e29fc55dcc810.js"
           ]
         },
         "css": {
@@ -82,13 +83,14 @@
       "eager": true,
       "name": "react-router-dom",
       "version": "6.30.3",
-      "id": "shell:react-router-dom",
+      "id": "remote2:react-router-dom",
       "assets": {
         "js": {
           "async": [],
           "sync": [
-            "main.5d28674e27f17971.js",
-            "styles.ca0e011658dd4738.js"
+            "remoteEntry.js",
+            "main.7e47a90fb8dd324d.js",
+            "styles.b97e29fc55dcc810.js"
           ]
         },
         "css": {
@@ -108,12 +110,12 @@
       "name": "react/jsx-runtime",
       "version": "19.2.4",
       "eager": false,
-      "id": "shell:react/jsx-runtime",
+      "id": "remote2:react/jsx-runtime",
       "assets": {
         "js": {
           "async": [],
           "sync": [
-            "85.61e8fc86feb0b8e4.js"
+            "85.bde12ca91035dd20.js"
           ]
         },
         "css": {
@@ -131,13 +133,14 @@
       "eager": true,
       "name": "react",
       "version": "19.2.4",
-      "id": "shell:react",
+      "id": "remote2:react",
       "assets": {
         "js": {
           "async": [],
           "sync": [
-            "main.5d28674e27f17971.js",
-            "styles.ca0e011658dd4738.js"
+            "remoteEntry.js",
+            "main.7e47a90fb8dd324d.js",
+            "styles.b97e29fc55dcc810.js"
           ]
         },
         "css": {
@@ -151,5 +154,28 @@
     }
   ],
   "remotes": [],
-  "exposes": []
+  "exposes": [
+    {
+      "path": "./Module",
+      "id": "remote2:Module",
+      "name": "Module",
+      "requires": [],
+      "file": "src/remote-entry.ts",
+      "assets": {
+        "js": {
+          "sync": [
+            "713.58710af9ee326ea2.js",
+            "__federation_expose_Module.968b5b4aaa45c3a4.js"
+          ],
+          "async": []
+        },
+        "css": {
+          "sync": [
+            "__federation_expose_Module.0e286b9f2ece8950.css"
+          ],
+          "async": []
+        }
+      }
+    }
+  ]
 }
