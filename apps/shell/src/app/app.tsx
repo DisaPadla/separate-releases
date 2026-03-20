@@ -69,6 +69,7 @@ export function App() {
   return (
     <div className={styles.appContainer}>
       <NavBar />
+      Shell
       <main className={styles.main}>
         <VersionSelector />
         <React.Suspense

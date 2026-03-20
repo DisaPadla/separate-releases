@@ -30,6 +30,7 @@ function Remote2Nav() {
 export function App() {
   return (
     <div className={styles.container}>
+      Remote 2
       <Remote2Nav />
       <div className={styles.content}>
         <Routes>
