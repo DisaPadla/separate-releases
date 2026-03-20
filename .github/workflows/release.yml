@@ -112,16 +112,16 @@ jobs:
           # Create root index.html that redirects to latest shell
           REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
           cat > _site/index.html <<'HTMLEOF'
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta id="redirect" http-equiv="refresh" content="" />
-  </head>
-  <body>
-    <p>Redirecting to Shell App...</p>
-  </body>
-</html>
-HTMLEOF
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta id="redirect" http-equiv="refresh" content="" />
+            </head>
+            <body>
+              <p>Redirecting to Shell App...</p>
+            </body>
+          </html>
+          HTMLEOF
           sed -i "s|content=\"\"|content=\"0;url=shell/${{ steps.versions.outputs.shell_version }}/\"|" _site/index.html
 
       - name: Generate versions.json manifest
