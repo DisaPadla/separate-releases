@@ -93,7 +93,7 @@ export function VersionSelector() {
   return (
     <div className={styles.versionPanel}>
       <div className={styles.versionHeader}>
-        <span className={styles.versionTitle}>🔧 Remote Versions</span>
+        <span className={styles.versionTitle}>🔧 Remote Versions:</span>
         <button className={styles.resetBtn} onClick={handleReset}>
           Reset to latest
         </button>
