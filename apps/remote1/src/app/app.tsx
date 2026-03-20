@@ -1,4 +1,5 @@
 import { Link, Route, Routes, useLocation } from 'react-router-dom';
+import * as _ from 'lodash-es';
 import { HomePage } from './pages/HomePage';
 import { ProductsPage } from './pages/ProductsPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
@@ -10,6 +11,9 @@ function Remote1Nav() {
   return (
     <nav className={styles.nav}>
       <span className={styles.appLabel}>📦 Remote App 1</span>
+      <span className={styles.appLabel} style={{ fontSize: '0.75rem', opacity: 0.8 }}>
+        lodash-es@{(_ as any).VERSION} — {_.upperFirst('products')}
+      </span>
       <ul className={styles.navLinks}>
         <li>
           <Link
@@ -31,7 +35,7 @@ function Remote1Nav() {
 export function App() {
   return (
     <div className={styles.container}>
-      Remote 1
+      Remote 1 HAHAHAHAH
       <Remote1Nav />
       <div className={styles.content}>
         <Routes>

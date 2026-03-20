@@ -5,6 +5,12 @@ const config: ModuleFederationConfig = {
   exposes: {
     './Module': './src/remote-entry.ts',
   },
+  shared: (name, config) => {
+    if (name === 'lodash-es') {
+      return { ...config, singleton: false, requiredVersion: '4.17.20' };
+    }
+    return config;
+  },
 };
 
 /**

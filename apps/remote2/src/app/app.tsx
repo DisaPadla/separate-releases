@@ -1,4 +1,5 @@
 import { Link, Route, Routes, useLocation } from 'react-router-dom';
+import * as _ from 'lodash-es';
 import { DashboardPage } from './pages/DashboardPage';
 import { SettingsPage } from './pages/SettingsPage';
 import styles from './app.module.css';
@@ -9,6 +10,9 @@ function Remote2Nav() {
   return (
     <nav className={styles.nav}>
       <span className={styles.appLabel}>📊 Remote App 2</span>
+      <span className={styles.appLabel} style={{ fontSize: '0.75rem', opacity: 0.8 }}>
+        lodash-es@{(_ as any).VERSION} — {_.camelCase('dashboard app')}
+      </span>
       <ul className={styles.navLinks}>
         <li>
           <Link
