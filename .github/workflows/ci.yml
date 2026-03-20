@@ -30,14 +30,14 @@ jobs:
       - name: Install dependencies
         run: npm i
 
-      - name: Lint all projects
-        run: npx nx run-many -t lint --parallel=3
+      - name: Lint affected projects
+        run: npx nx affected -t lint --parallel=3
 
-      - name: Type-check all projects
-        run: npx nx run-many -t typecheck --parallel=3
+      - name: Type-check affected projects
+        run: npx nx affected -t typecheck --parallel=3
 
-      - name: Build all projects
-        run: npx nx run-many -t build --parallel=3
+      - name: Build affected projects
+        run: npx nx affected -t build --parallel=3
 
-      - name: Test all projects
-        run: npx nx run-many -t test --parallel=3 --configuration=ci
+      - name: Test affected projects
+        run: npx nx affected -t test --parallel=3 --configuration=ci
