@@ -8,8 +8,6 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  pages: write
-  id-token: write
 
 concurrency:
   group: release
@@ -20,9 +18,6 @@ jobs:
     name: Build & Deploy
     if: github.event.label.name == 'release'
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout PR branch
@@ -40,6 +35,7 @@ jobs:
       - name: Install dependencies
         run: npm i
 
+      # ── Determine affected apps ──────────────────────────────────────
       - name: Determine affected apps
         id: affected
         run: |
@@ -47,10 +43,19 @@ jobs:
           echo "apps=${AFFECTED}" >> "$GITHUB_OUTPUT"
           echo "Affected apps: ${AFFECTED}"
 
+          if [ -z "$AFFECTED" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ── Bump versions for affected apps ──────────────────────────────
       - name: Bump versions for affected apps
+        if: steps.affected.outputs.skip == 'false'
         id: versions
         run: |
           APPS="${{ steps.affected.outputs.apps }}"
+          AFFECTED_CSV=""
 
           for app in shell remote1 remote2; do
             PKG="apps/${app}/package.json"
@@ -66,6 +71,7 @@ jobs:
                 fs.writeFileSync('${PKG}', JSON.stringify(pkg, null, 2) + '\n');
               "
               echo "${app} bumped: ${CURRENT} -> ${NEW_VERSION}"
+              AFFECTED_CSV="${AFFECTED_CSV:+$AFFECTED_CSV,}${app}"
             else
               echo "${app} not affected, keeping ${CURRENT}"
             fi
@@ -78,8 +84,11 @@ jobs:
           echo "shell_version=${SHELL_VERSION}" >> "$GITHUB_OUTPUT"
           echo "remote1_version=${REMOTE1_VERSION}" >> "$GITHUB_OUTPUT"
           echo "remote2_version=${REMOTE2_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "affected_csv=${AFFECTED_CSV}" >> "$GITHUB_OUTPUT"
 
-      - name: Commit version bumps to PR branch
+      # ── Commit version bumps to PR branch ────────────────────────────
+      - name: Commit version bumps
+        if: steps.affected.outputs.skip == 'false'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -95,57 +104,152 @@ jobs:
             git push origin HEAD:${{ github.event.pull_request.head.ref }}
           fi
 
-      - name: Build all apps
+      # ── Build only affected apps in parallel ─────────────────────────
+      - name: Build affected apps
+        if: steps.affected.outputs.skip == 'false'
         run: |
-          npx nx run-many -t build --projects=shell,remote1,remote2 --configuration=production --parallel=3 --baseHref=./
+          npx nx run-many -t build \
+            --projects=${{ steps.versions.outputs.affected_csv }} \
+            --configuration=production \
+            --parallel=3
 
-      - name: Prepare deployment
+      # ── Prepare gh-pages branch via worktree ─────────────────────────
+      - name: Prepare gh-pages branch
+        if: steps.affected.outputs.skip == 'false'
         run: |
-          mkdir -p _site/remote1/${{ steps.versions.outputs.remote1_version }}
-          mkdir -p _site/remote2/${{ steps.versions.outputs.remote2_version }}
-          mkdir -p _site/shell/${{ steps.versions.outputs.shell_version }}
+          git fetch origin gh-pages:gh-pages 2>/dev/null || {
+            echo "Creating orphan gh-pages branch"
+            git checkout --orphan gh-pages
+            git reset --hard
+            git commit --allow-empty -m "Initial gh-pages"
+            git checkout -
+          }
+          git worktree add _site gh-pages
 
-          cp -r apps/remote1/dist/* _site/remote1/${{ steps.versions.outputs.remote1_version }}/
-          cp -r apps/remote2/dist/* _site/remote2/${{ steps.versions.outputs.remote2_version }}/
-          cp -r apps/shell/dist/* _site/shell/${{ steps.versions.outputs.shell_version }}/
+      # ── Copy versioned builds ────────────────────────────────────────
+      - name: Copy versioned builds
+        if: steps.affected.outputs.skip == 'false'
+        run: |
+          APPS="${{ steps.affected.outputs.apps }}"
+          SHELL_V="${{ steps.versions.outputs.shell_version }}"
+          R1_V="${{ steps.versions.outputs.remote1_version }}"
+          R2_V="${{ steps.versions.outputs.remote2_version }}"
 
-          # Create root index.html that redirects to latest shell
+          declare -A APP_VERSIONS=(
+            [shell]="$SHELL_V"
+            [remote1]="$R1_V"
+            [remote2]="$R2_V"
+          )
+
+          for app in shell remote1 remote2; do
+            if echo "$APPS" | grep -qw "$app"; then
+              VERSION="${APP_VERSIONS[$app]}"
+              DEST="_site/${app}/${VERSION}"
+              mkdir -p "$DEST"
+              cp -r "apps/${app}/dist/"* "$DEST/"
+              echo "Deployed ${app}@${VERSION} -> ${DEST}"
+            fi
+          done
+
+      # ── Deploy shell at site root ────────────────────────────────────
+      - name: Deploy shell at root
+        if: steps.affected.outputs.skip == 'false'
+        run: |
+          APPS="${{ steps.affected.outputs.apps }}"
+          SHELL_V="${{ steps.versions.outputs.shell_version }}"
           REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
-          cat > _site/index.html <<'HTMLEOF'
+
+          # Determine the shell source directory
+          if echo "$APPS" | grep -qw "shell"; then
+            SHELL_SRC="apps/shell/dist"
+          elif [ ! -f _site/index.html ]; then
+            # First deploy and shell wasn't affected — use latest versioned shell
+            LATEST_SHELL=$(ls -d _site/shell/*/ 2>/dev/null | sort -V | tail -1)
+            if [ -n "$LATEST_SHELL" ]; then
+              SHELL_SRC="$LATEST_SHELL"
+            else
+              echo "No shell build available to deploy at root — skipping"
+              exit 0
+            fi
+          else
+            echo "Shell not affected and root already exists — skipping root update"
+            exit 0
+          fi
+
+          # Remove old root-level files (keep versioned dirs, versions.json, 404.html)
+          find _site -maxdepth 1 -type f ! -name 'versions.json' ! -name '404.html' -delete
+
+          # Copy shell build to root
+          cp -r "${SHELL_SRC}/"* _site/
+
+          # Inject site root global so the shell can find versions.json and remotes
+          sed -i 's|</head>|<script>window.__SITE_ROOT__="/'"${REPO_NAME}"'/";</script></head>|' _site/index.html
+
+          echo "Shell deployed at site root (source: ${SHELL_SRC})"
+
+      # ── Generate/update versions.json ────────────────────────────────
+      - name: Update versions.json
+        if: steps.affected.outputs.skip == 'false'
+        run: |
+          SHELL_V="${{ steps.versions.outputs.shell_version }}"
+          R1_V="${{ steps.versions.outputs.remote1_version }}"
+          R2_V="${{ steps.versions.outputs.remote2_version }}"
+
+          # Build available arrays from what's actually on gh-pages
+          SHELL_ALL=$(ls -d _site/shell/*/ 2>/dev/null | xargs -I{} basename {} | sort -V | jq -R . | jq -s . || echo '[]')
+          R1_ALL=$(ls -d _site/remote1/*/ 2>/dev/null | xargs -I{} basename {} | sort -V | jq -R . | jq -s . || echo '[]')
+          R2_ALL=$(ls -d _site/remote2/*/ 2>/dev/null | xargs -I{} basename {} | sort -V | jq -R . | jq -s . || echo '[]')
+
+          jq -n \
+            --arg sv "$SHELL_V" \
+            --arg r1v "$R1_V" \
+            --arg r2v "$R2_V" \
+            --argjson sa "$SHELL_ALL" \
+            --argjson r1a "$R1_ALL" \
+            --argjson r2a "$R2_ALL" \
+            '{
+              latest: { shell: $sv, remote1: $r1v, remote2: $r2v },
+              available: { shell: $sa, remote1: $r1a, remote2: $r2a }
+            }' > _site/versions.json
+
+          echo "versions.json:"
+          cat _site/versions.json
+
+      # ── Generate 404.html for SPA routing ────────────────────────────
+      - name: Generate 404.html
+        if: steps.affected.outputs.skip == 'false'
+        run: |
+          REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
+          cat > _site/404.html << 'EOF'
           <!DOCTYPE html>
           <html>
             <head>
-              <meta id="redirect" http-equiv="refresh" content="" />
+              <meta charset="utf-8" />
+              <script>
+                // SPA redirect for GitHub Pages
+                // Stores the current path and redirects to site root
+                // The main index.html restores the route via history.replaceState
+                var repo = '/' + window.location.pathname.split('/')[1] + '/';
+                var path = window.location.pathname.slice(repo.length);
+                sessionStorage.setItem('spa-redirect', '/' + path);
+                window.location.replace(repo);
+              </script>
             </head>
-            <body>
-              <p>Redirecting to Shell App...</p>
-            </body>
+            <body></body>
           </html>
-          HTMLEOF
-          sed -i "s|content=\"\"|content=\"0;url=shell/${{ steps.versions.outputs.shell_version }}/\"|" _site/index.html
+          EOF
 
-      - name: Generate versions.json manifest
+      # ── Push to gh-pages ─────────────────────────────────────────────
+      - name: Push to gh-pages
+        if: steps.affected.outputs.skip == 'false'
         run: |
-          REMOTE1_ALL=$(ls -d _site/remote1/*/ 2>/dev/null | xargs -I{} basename {} | sort -V | jq -R . | jq -s .)
-          REMOTE2_ALL=$(ls -d _site/remote2/*/ 2>/dev/null | xargs -I{} basename {} | sort -V | jq -R . | jq -s .)
-          SHELL_ALL=$(ls -d _site/shell/*/ 2>/dev/null | xargs -I{} basename {} | sort -V | jq -R . | jq -s .)
-
-          jq -n \
-            --arg sv "${{ steps.versions.outputs.shell_version }}" \
-            --arg r1v "${{ steps.versions.outputs.remote1_version }}" \
-            --arg r2v "${{ steps.versions.outputs.remote2_version }}" \
-            --argjson sa "$SHELL_ALL" \
-            --argjson r1a "$REMOTE1_ALL" \
-            --argjson r2a "$REMOTE2_ALL" \
-            '{latest:{shell:$sv,remote1:$r1v,remote2:$r2v},available:{shell:$sa,remote1:$r1a,remote2:$r2a}}' \
-            > _site/versions.json
-          cat _site/versions.json
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          cd _site
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes to deploy"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "deploy: shell@${{ steps.versions.outputs.shell_version }} remote1@${{ steps.versions.outputs.remote1_version }} remote2@${{ steps.versions.outputs.remote2_version }}"
+            git push origin gh-pages
+          fi

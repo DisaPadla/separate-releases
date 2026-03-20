@@ -16,8 +16,12 @@ function getSavedVersions(): Record<string, string> {
 }
 
 function getSiteRoot(): string {
-  // In production on GitHub Pages, the shell is at /<repo>/shell/<version>/
-  // We need the site root: /<repo>/
+  // Primary: injected at deploy time on GitHub Pages
+  const injected = (window as any).__SITE_ROOT__ as string | undefined;
+  if (injected) {
+    return window.location.origin + injected;
+  }
+  // Fallback: detect versioned shell path (/<repo>/shell/<version>/)
   const path = window.location.pathname;
   const shellIndex = path.indexOf('/shell/');
   if (shellIndex !== -1) {
